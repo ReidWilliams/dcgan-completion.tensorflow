@@ -15,6 +15,7 @@ from six.moves import xrange
 
 from ops import *
 from utils import *
+from autoencoder import Autoencoder
 
 SUPPORTED_EXTENSIONS = ["png", "jpg", "jpeg"]
 
@@ -85,7 +86,10 @@ class DCGAN(object):
       
         self.z = tf.placeholder(tf.float32, [None, self.z_dim], name='z')
 
-        self.G = self.generator(self.z)
+        # self.G = self.generator(self.z)
+        self._autoencoder = Autoencoder(zsize=self.z_dim)
+        self.G = self._autoencoder.generator(self.z, training=self.is_training)
+
         self.D, self.D_logits = self.discriminator(self.images)
         self.D_, self.D_logits_ = self.discriminator(self.G, reuse=True)
 
@@ -206,36 +210,36 @@ class DCGAN(object):
     
             return tf.nn.sigmoid(h4), h4
 
-    def generator(self, z):
-        with tf.variable_scope("generator") as scope:
-            self.z_, self.h0_w, self.h0_b = linear(z, self.gf_dim*8*4*4, 'g_h0_lin', with_w=True)
+    # def generator(self, z):
+    #     with tf.variable_scope("generator") as scope:
+    #         self.z_, self.h0_w, self.h0_b = linear(z, self.gf_dim*8*4*4, 'g_h0_lin', with_w=True)
     
-            # TODO: Nicer iteration pattern here. #readability
-            hs = [None]
-            hs[0] = tf.reshape(self.z_, [-1, 4, 4, self.gf_dim * 8])
-            hs[0] = tf.nn.relu(self.g_bns[0](hs[0], self.is_training))
+    #         # TODO: Nicer iteration pattern here. #readability
+    #         hs = [None]
+    #         hs[0] = tf.reshape(self.z_, [-1, 4, 4, self.gf_dim * 8])
+    #         hs[0] = tf.nn.relu(self.g_bns[0](hs[0], self.is_training))
 
-            i = 1 # Iteration number.
-            depth_mul = 8  # Depth decreases as spatial component increases.
-            size = 8  # Size increases as depth decreases.
+    #         i = 1 # Iteration number.
+    #         depth_mul = 8  # Depth decreases as spatial component increases.
+    #         size = 8  # Size increases as depth decreases.
 
-            while size < self.image_size:
-                hs.append(None)
-                name = 'g_h{}'.format(i)
-                hs[i], _, _ = conv2d_transpose(hs[i-1],
-                    [self.batch_size, size, size, self.gf_dim*depth_mul], name=name, with_w=True)
-                hs[i] = tf.nn.relu(self.g_bns[i](hs[i], self.is_training))
+    #         while size < self.image_size:
+    #             hs.append(None)
+    #             name = 'g_h{}'.format(i)
+    #             hs[i], _, _ = conv2d_transpose(hs[i-1],
+    #                 [self.batch_size, size, size, self.gf_dim*depth_mul], name=name, with_w=True)
+    #             hs[i] = tf.nn.relu(self.g_bns[i](hs[i], self.is_training))
 
-                i += 1
-                depth_mul //= 2
-                size *= 2
+    #             i += 1
+    #             depth_mul //= 2
+    #             size *= 2
 
-            hs.append(None)
-            name = 'g_h{}'.format(i)
-            hs[i], _, _ = conv2d_transpose(hs[i - 1],
-                [self.batch_size, size, size, 3], name=name, with_w=True)
+    #         hs.append(None)
+    #         name = 'g_h{}'.format(i)
+    #         hs[i], _, _ = conv2d_transpose(hs[i - 1],
+    #             [self.batch_size, size, size, 3], name=name, with_w=True)
     
-            return tf.nn.tanh(hs[i])
+    #         return tf.nn.tanh(hs[i])
 
     def save(self, checkpoint_dir, step):
         if not os.path.exists(checkpoint_dir):
