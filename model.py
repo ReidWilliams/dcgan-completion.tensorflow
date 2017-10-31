@@ -104,6 +104,9 @@ class DCGAN(object):
         self.d__sum = tf.summary.histogram("d_", self.D_)
         self.G_sum = tf.summary.image("G", self.G)
 
+        self.d_out_real_sum = tf.summary.scalar("d_out_real", tf.reduce_mean(self.D))
+        self.d_out_fake_sum = tf.summary.scalar("d_out_fake", tf.reduce_mean(self.D_))
+
         self.d_loss_real = tf.reduce_mean(
             tf.nn.sigmoid_cross_entropy_with_logits(logits=self.D_logits,
                                                     labels=tf.ones_like(self.D)))
